@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Lab - Uji Makanan Interaktif</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        /* Glassmorphism styling */
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+        }
+
+        /* Liquid Tube CSS Animations */
+        .test-tube {
+            width: 70px;
+            height: 220px;
+            border: 4px solid rgba(255, 255, 255, 0.8);
+            border-top: none;
+            border-bottom-left-radius: 35px;
+            border-bottom-right-radius: 35px;
+            position: relative;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.05);
+            box-shadow: inset 0 0 15px rgba(255, 255, 255, 0.2), 0 10px 25px rgba(0,0,0,0.5);
+        }
+
+        .test-tube-rim {
+            width: 82px;
+            height: 12px;
+            border: 3px solid rgba(255, 255, 255, 0.9);
+            border-radius: 6px;
+            position: absolute;
+            top: -10px;
+            left: -9px;
+            background: rgba(255, 255, 255, 0.2);
+            z-index: 10;
+        }
+
+        .liquid {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 0%;
+            transition: height 1s ease-in-out, background-color 1.5s ease;
+            border-bottom-left-radius: 30px;
+            border-bottom-right-radius: 30px;
+        }
+
+        .meniscus {
+            position: absolute;
+            top: -6px;
+            left: 0;
+            width: 100%;
+            height: 12px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+        }
+
+        /* Bunsen Flame Animation */
+        .flame {
+            width: 24px;
+            height: 40px;
+            background: linear-gradient(to top, #3b82f6, #ef4444, #f59e0b);
+            border-radius: 50% 50% 20% 20%;
+            position: absolute;
+            bottom: 45px;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: flicker 0.2s infinite alternate;
+            filter: blur(1px);
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        @keyframes flicker {
+            0% { transform: translateX(-50%) scale(1) rotate(-1deg); }
+            100% { transform: translateX(-50%) scale(1.1, 0.95) rotate(1deg); }
+        }
+
+        /* Reagent Drop Animation */
+        .droplet {
+            width: 10px;
+            height: 14px;
+            border-radius: 50%;
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            z-index: 20;
+        }
+
+        .drop-animation {
+            animation: fall 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+        }
+
+        @keyframes fall {
+            0% { top: 10px; opacity: 1; }
+            80% { opacity: 1; }
+            100% { top: 120px; opacity: 0; }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-3 md:p-6">
+
+    <!-- Header Navigation -->
+    <header class="glass-card p-4 mb-6 flex flex-col md:flex-row justify-between items-center gap-4 border-b border-cyan-500/30">
+        <div class="flex items-center gap-3">
+            <div class="p-3 bg-gradient-to-tr from-cyan-600 to-blue-600 rounded-xl shadow-lg shadow-cyan-500/20">
+                <i class="fa-solid fa-vial-virus text-2xl text-white"></i>
+            </div>
+            <div>
+                <h1 class="text-xl md:text-2xl font-bold bg-gradient-to-r from-cyan-400 via-teal-300 to-blue-400 bg-clip-text text-transparent">
+                    Virtual Lab - Uji Makanan
+                </h1>
+                <p class="text-xs text-slate-400">Simulasi Interaktif Praktikum Biokimia & Nutrisi</p>
+            </div>
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="switchTab('lab')" id="tab-btn-lab" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-cyan-600 text-white shadow-md shadow-cyan-600/30">
+                <i class="fa-solid fa-flask mr-2"></i>Laboratorium
+            </button>
+            <button onclick="switchTab('quiz')" id="tab-btn-quiz" class="px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-slate-800 text-slate-300 hover:bg-slate-700">
+                <i class="fa-solid fa-graduation-cap mr-2"></i>Kuis Evaluasi
+            </button>
+            <button onclick="resetLab()" class="px-3 py-2 bg-rose-600/20 text-rose-300 hover:bg-rose-600 hover:text-white rounded-lg text-sm transition-all border border-rose-500/30" title="Reset Praktikum">
+                <i class="fa-solid fa-rotate-right"></i>
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="grow">
+        <!-- SECTION 1: VIRTUAL LAB INTERACTION -->
+        <div id="section-lab" class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <!-- LEFT PANEL: Controls (Sample & Reagent Selection) -->
+            <div class="lg:col-span-4 space-y-6">
+                <!-- Step 1: Pilih Sampel -->
+                <div class="glass-card p-5 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-cyan-500"></div>
+                    <h2 class="text-sm font-bold text-cyan-400 tracking-wider uppercase mb-3 flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-300 flex items-center justify-center text-xs">1</span>
+                        Pilih Sampel Makanan
+                    </h2>
+                    <div class="grid grid-cols-2 gap-2" id="sample-buttons">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Step 2: Pilih Reagen -->
+                <div class="glass-card p-5 relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
+                    <h2 class="text-sm font-bold text-amber-400 tracking-wider uppercase mb-3 flex items-center gap-2">
+                        <span class="w-6 h-6 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center text-xs">2</span>
+                        Pilih Reagen Uji
+                    </h2>
+                    <div class="space-y-2" id="reagent-buttons">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Action Panel (Pemanasan & Teteskan) -->
+                <div class="glass-card p-5 space-y-3">
+                    <button id="btn-add-reagent" onclick="addReagent()" disabled class="w-full py-3 px-4 bg-slate-800 text-slate-500 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all cursor-not-allowed border border-slate-700">
+                        <i class="fa-solid fa-droplet"></i> Teteskan Reagen
+                    </button>
+                    <button id="btn-heat" onclick="toggleHeating()" disabled class="w-full py-3 px-4 bg-slate-800 text-slate-500 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all cursor-not-allowed border border-slate-700">
+                        <i class="fa-solid fa-fire"></i> Panaskan Pembakar Bunsen
+                    </button>
+                </div>
+            </div>
+
+            <!-- CENTER PANEL: Interactive Lab Workbench -->
+            <div class="lg:col-span-8 flex flex-col justify-between glass-card p-6 min-h-[480px] relative overflow-hidden">
+                <!-- Status & Instruction Header -->
+                <div class="bg-slate-900/80 backdrop-blur p-4 rounded-xl border border-slate-700/50 flex items-start gap-3">
+                    <i class="fa-solid fa-circle-info text-cyan-400 text-lg mt-0.5"></i>
+                    <div>
+                        <h3 class="font-semibold text-slate-200 text-sm" id="instruction-title">Langkah Praktikum:</h3>
+                        <p class="text-xs text-slate-400 mt-1" id="instruction-text">Pilihlah salah satu sampel makanan di panel kiri untuk memulai pengujian.</p>
+                    </div>
+                </div>
+
+                <!-- Stage Workspace Visual -->
+                <div class="relative flex-1 flex items-center justify-center my-8">
+                    <!-- Droplet Element for Animation -->
+                    <div id="reagent-droplet" class="droplet"></div>
+
+                    <!-- Test Tube Assembly -->
+                    <div class="flex flex-col items-center relative">
+                        <div class="test-tube">
+                            <div class="test-tube-rim"></div>
+                            <!-- Liquid Container -->
+                            <div id="tube-liquid" class="liquid">
+                                <div class="meniscus"></div>
+                            </div>
+                        </div>
+
+                        <!-- Test Tube Stand / Rack Visual Base -->
+                        <div class="w-32 h-4 bg-slate-700 rounded-t-sm shadow-md mt-1 border-t border-slate-600"></div>
+                        <div class="w-40 h-3 bg-slate-800 rounded-sm shadow-lg border-t border-slate-700"></div>
+                        
+                        <!-- Bunsen Burner Visual -->
+                        <div id="bunsen-burner" class="absolute -bottom-12 flex flex-col items-center transition-opacity duration-300 opacity-40">
+                            <div id="flame" class="flame"></div>
+                            <!-- Burner Head & Tube -->
+                            <div class="w-6 h-8 bg-gradient-to-r from-slate-400 to-slate-600 rounded-t-sm"></div>
+                            <div class="w-16 h-3 bg-slate-700 rounded-sm"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Tube Info Card -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center bg-slate-900/60 p-3 rounded-xl border border-slate-800 text-xs">
+                    <div>
+                        <span class="text-slate-400 block">Sampel:</span>
+                        <span id="info-sample" class="font-semibold text-cyan-300">-</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 block">Reagen:</span>
+                        <span id="info-reagent" class="font-semibold text-amber-300">-</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 block">Status Panas:</span>
+                        <span id="info-heat" class="font-semibold text-rose-400">Dingin</span>
+                    </div>
+                    <div>
+                        <span class="text-slate-400 block">Warna Cairan:</span>
+                        <span id="info-color" class="font-semibold text-emerald-300">Bening</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BOTTOM PANEL: Observation Data Table -->
+            <div class="lg:col-span-12 glass-card p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-bold text-slate-100 flex items-center gap-2">
+                        <i class="fa-solid fa-table text-cyan-400"></i> Tabel Hasil Pengamatan Praktikum
+                    </h3>
+                    <button onclick="clearTable()" class="text-xs text-slate-400 hover:text-rose-400 transition-colors flex items-center gap-1">
+                        <i class="fa-solid fa-trash-can"></i> Bersihkan Tabel
+                    </button>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs md:text-sm border-collapse">
+                        <thead>
+                            <tr class="bg-slate-800/80 text-cyan-300 border-b border-slate-700">
+                                <th class="p-3 font-semibold">No</th>
+                                <th class="p-3 font-semibold">Nama Sampel</th>
+                                <th class="p-3 font-semibold">Reagen Ditambahkan</th>
+                                <th class="p-3 font-semibold">Perlakuan Pemanasan</th>
+                                <th class="p-3 font-semibold">Warna Awal</th>
+                                <th class="p-3 font-semibold">Warna Akhir</th>
+                                <th class="p-3 font-semibold">Kesimpulan Kandungan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="observation-table-body" class="divide-y divide-slate-800 text-slate-300">
+                            <tr id="empty-table-row">
+                                <td colspan="7" class="p-4 text-center text-slate-500 italic">Belum ada data pengamatan. Selesaikan pengujian sampel di atas.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 2: QUIZ & EVALUATION -->
+        <div id="section-quiz" class="hidden glass-card p-6 max-w-3xl mx-auto space-y-6">
+            <div class="border-b border-slate-700 pb-4">
+                <h2 class="text-xl font-bold text-cyan-400 flex items-center gap-2">
+                    <i class="fa-solid fa-pen-to-square"></i> Evaluasi Pemahaman Praktikum
+                </h2>
+                <p class="text-xs text-slate-400 mt-1">Uji pemahaman Anda mengenai prinsip reagen dan identifikasi zat gizi makanan.</p>
+            </div>
+
+            <div id="quiz-container" class="space-y-6">
+                <!-- Quiz Items JavaScript-Generated -->
+            </div>
+
+            <div class="pt-4 border-t border-slate-700 flex justify-between items-center">
+                <button onclick="submitQuiz()" class="px-6 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl font-semibold shadow-lg shadow-cyan-600/30 transition-all">
+                    Kirim Jawaban
+                </button>
+                <div id="quiz-score" class="text-lg font-bold text-emerald-400"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-8 text-center text-xs text-slate-500 py-4 border-t border-slate-800">
+        <p>© 2026 Virtual Science Lab — Media Pembelajaran Biokimia Mandiri</p>
+    </footer>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        /* --- DATA CONFIGURATION --- */
+        const SAMPLES = [
+            { id: 'nasi', name: 'Nasi / Tepung', color: 'rgba(241, 245, 249, 0.7)', baseColorName: 'Putih Keruh', content: 'amilum' },
+            { id: 'pisang', name: 'Pisang / Madu', color: 'rgba(254, 240, 138, 0.7)', baseColorName: 'Kuning Cerah', content: 'glukosa' },
+            { id: 'telur', name: 'Putih Telur / Susu', color: 'rgba(248, 250, 252, 0.8)', baseColorName: 'Putih Transparan', content: 'protein' },
+            { id: 'air', name: 'Air Matang (Kontrol)', color: 'rgba(224, 242, 254, 0.4)', baseColorName: 'Bening', content: 'none' }
+        ];
+
+        const REAGENTS = [
+            { id: 'iodine', name: 'Iodine (Lugol)', color: '#b45309', displayColor: 'Cokelat Kemerahan', requiresHeat: false },
+            { id: 'benedict', name: 'Benedict', color: '#2563eb', displayColor: 'Biru Cerah', requiresHeat: true },
+            { id: 'biuret', name: 'Biuret', color: '#3b82f6', displayColor: 'Biru Muda', requiresHeat: false }
+        ];
+
+        const QUIZ_QUESTIONS = [
+            {
+                id: 1,
+                question: "Reagen manakah yang digunakan khusus untuk menguji keberadaan amilum (karbohidrat kompleks) pada makanan?",
+                options: ["Benedict", "Iodine (Lugol)", "Biuret", "Alkohol 70%"],
+                answer: 1
+            },
+            {
+                id: 2,
+                question: "Perubahan warna menjadi merah bata pada uji Benedict menandakan bahwa sampel makanan mengandung...",
+                options: ["Protein", "Amilum", "Gula Pereduksi (Glukosa)", "Lemak"],
+                answer: 2
+            },
+            {
+                id: 3,
+                question: "Mengapa uji Benedict memerlukan proses pemanasan di atas pembakar Bunsen?",
+                options: [
+                    "Untuk menguapkan sampel makanan",
+                    "Untuk membunuh bakteri pada sampel",
+                    "Untuk mempercepat reaksi reduksi ion tembaga oleh gula pereduksi",
+                    "Untuk mengubah warna reagen menjadi transparan"
+                ],
+                answer: 2
+            },
+            {
+                id: 4,
+                question: "Apabila sampel putih telur ditetesi reagen Biuret, warna larutan akan berubah menjadi...",
+                options: ["Biru Kehitaman", "Merah Bata", "Ungu", "Kuning Kunyit"],
+                answer: 2
+            }
+        ];
+
+        /* --- LAB STATE VARIABLES --- */
+        let state = {
+            selectedSample: null,
+            selectedReagent: null,
+            isReagentAdded: false,
+            isHeated: false,
+            observationHistory: []
+        };
+
+        /* --- INITIALIZATION --- */
+        document.addEventListener('DOMContentLoaded', () => {
+            renderSampleButtons();
+            renderReagentButtons();
+            renderQuiz();
+        });
+
+        /* --- UI RENDERING FUNCTIONS --- */
+        function renderSampleButtons() {
+            const container = document.getElementById('sample-buttons');
+            container.innerHTML = SAMPLES.map(sample => `
+                <button onclick="selectSample('${sample.id}')" id="btn-sample-${sample.id}" 
+                    class="p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-xs font-medium transition-all flex flex-col justify-between h-20">
+                    <span class="text-slate-200 font-semibold">${sample.name}</span>
+                    <span class="text-[10px] text-slate-400">Warna: ${sample.baseColorName}</span>
+                </button>
+            `).join('');
+        }
+
+        function renderReagentButtons() {
+            const container = document.getElementById('reagent-buttons');
+            container.innerHTML = REAGENTS.map(reagent => `
+                <button onclick="selectReagent('${reagent.id}')" id="btn-reagent-${reagent.id}" 
+                    class="w-full p-3 text-left rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-xs font-medium transition-all flex items-center justify-between">
+                    <div>
+                        <div class="text-slate-200 font-semibold">${reagent.name}</div>
+                        <div class="text-[10px] text-slate-400">Warna Awal: ${reagent.displayColor}</div>
+                    </div>
+                    ${reagent.requiresHeat ? '<span class="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded border border-amber-500/30"><i class="fa-solid fa-fire text-[9px] mr-1"></i>Butuh Panas</span>' : ''}
+                </button>
+            `).join('');
+        }
+
+        /* --- LAB INTERACTION LOGIC --- */
+        function selectSample(sampleId) {
+            state.selectedSample = SAMPLES.find(s => s.id === sampleId);
+            state.isReagentAdded = false;
+            state.isHeated = false;
+
+            // Highlight Active Button
+            SAMPLES.forEach(s => {
+                const btn = document.getElementById(`btn-sample-${s.id}`);
+                if(s.id === sampleId) {
+                    btn.classList.add('border-cyan-500', 'bg-cyan-950/40', 'ring-1', 'ring-cyan-500');
+                } else {
+                    btn.classList.remove('border-cyan-500', 'bg-cyan-950/40', 'ring-1', 'ring-cyan-500');
+                }
+            });
+
+            // Fill Liquid in Test Tube
+            const liquid = document.getElementById('tube-liquid');
+            liquid.style.height = '45%';
+            liquid.style.backgroundColor = state.selectedSample.color;
+
+            // Reset Bunsen
+            turnOffHeat();
+
+            updateStatusUI();
+            updateInstruction(`Sampel ${state.selectedSample.name} berhasil dimasukkan ke dalam tabung reaksi. Sekarang pilihlah reagen uji.`);
+        }
+
+        function selectReagent(reagentId) {
+            if(!state.selectedSample) {
+                alert("Silakan pilih sampel makanan terlebih dahulu!");
+                return;
+            }
+
+            state.selectedReagent = REAGENTS.find(r => r.id === reagentId);
+            state.isReagentAdded = false;
+            state.isHeated = false;
+
+            // Highlight Active Button
+            REAGENTS.forEach(r => {
+                const btn = document.getElementById(`btn-reagent-${r.id}`);
+                if(r.id === reagentId) {
+                    btn.classList.add('border-amber-500', 'bg-amber-950/40', 'ring-1', 'ring-amber-500');
+                } else {
+                    btn.classList.remove('border-amber-500', 'bg-amber-950/40', 'ring-1', 'ring-amber-500');
+                }
+            });
+
+            // Reset Bunsen
+            turnOffHeat();
+
+            // Enable Reagent Drop Button
+            const addBtn = document.getElementById('btn-add-reagent');
+            addBtn.disabled = false;
+            addBtn.className = "w-full py-3 px-4 bg-amber-600 hover:bg-amber-500 text-white rounded-xl font-semibold flex items-center justify-center gap-2 transition-all shadow-lg shadow-amber-600/30 cursor-pointer";
+
+            updateStatusUI();
+            updateInstruction(`Reagen ${state.selectedReagent.name} dipilih. Klik tombol 'Teteskan Reagen' untuk mencampurnya.`);
+        }
+
+        function addReagent() {
+            if(!state.selectedSample || !state.selectedReagent) return;
+
+            // Animate Drop
+            const droplet = document.getElementById('reagent-droplet');
+            droplet.style.backgroundColor = state.selectedReagent.color;
+            droplet.classList.remove('drop-animation');
+            void droplet.offsetWidth; // Trigger Reflow
+            droplet.classList.add('drop-animation');
+
+            setTimeout(() => {
+                state.isReagentAdded = true;
+                const heatBtn = document.getElementById('btn-heat');
+
+                if(state.selectedReagent.requiresHeat) {
+                    heatBtn.disabled = false;
+                    heatBtn.className = "w-full py-3 px-4 bg-rose-600 hover:bg-rose-500 text-white rounded-xl font-semibold flex items-center justify-center gap-2 transition-all shadow-lg shadow-rose-600/30 cursor-pointer";
+                    updateInstruction(`Reagen Benedict diteteskan. Uji Benedict memerlukan pemanasan! Klik 'Panaskan Pembakar Bunsen'.`);
+                } else {
+                    heatBtn.disabled = true;
+                    heatBtn.className = "w-full py-3 px-4 bg-slate-800 text-slate-500 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all cursor-not-allowed border border-slate-700";
+                    updateInstruction(`Reagen ${state.selectedReagent.name} diteteskan. Reaksi berlangsung.`);
+                }
+
+                evaluateReaction();
+            }, 750);
+        }
+
+        function toggleHeating() {
+            if(!state.isReagentAdded || !state.selectedReagent.requiresHeat) return;
+
+            state.isHeated = !state.isHeated;
+            const flame = document.getElementById('flame');
+            const burner = document.getElementById('bunsen-burner');
+
+            if(state.isHeated) {
+                flame.style.opacity = '1';
+                burner.classList.remove('opacity-40');
+                burner.classList.add('opacity-100');
+                updateInstruction(`Pemanasan berlangsung... Mengamati perubahan warna reaksi glukosa.`);
+                setTimeout(() => {
+                    evaluateReaction();
+                }, 1200);
+            } else {
+                turnOffHeat();
+            }
+        }
+
+        function turnOffHeat() {
+            state.isHeated = false;
+            const flame = document.getElementById('flame');
+            const burner = document.getElementById('bunsen-burner');
+            flame.style.opacity = '0';
+            burner.classList.remove('opacity-100');
+            burner.classList.add('opacity-40');
+        }
+
+        function evaluateReaction() {
+            if(!state.isReagentAdded) return;
+
+            const liquid = document.getElementById('tube-liquid');
+            let finalColorCss = '';
+            let finalColorName = '';
+            let conclusion = '';
+
+            const sample = state.selectedSample;
+            const reagent = state.selectedReagent;
+
+            // REACTION LOGIC MATRIX
+            if (reagent.id === 'iodine') {
+                if (sample.content === 'amilum') {
+                    finalColorCss = '#1e1b4b'; // Dark Navy/Blackish Blue
+                    finalColorName = 'Biru Kehitaman';
+                    conclusion = 'Positif Mengandung Amilum (Karbohidrat)';
+                } else {
+                    finalColorCss = '#d97706'; // Amber / Iodine original blend
+                    finalColorName = 'Cokelat Kuning';
+                    conclusion = 'Negatif Amilum';
+                }
+            } else if (reagent.id === 'benedict') {
+                if (!state.isHeated) {
+                    finalColorCss = '#2563eb'; // Cold Benedict Blue
+                    finalColorName = 'Biru Muda (Belum Dipanaskan)';
+                    conclusion = 'Membutuhkan Pemanasan';
+                } else {
+                    if (sample.content === 'glukosa') {
+                        finalColorCss = '#dc2626'; // Brick Red
+                        finalColorName = 'Merah Bata';
+                        conclusion = 'Positif Mengandung Gula Pereduksi (Glukosa)';
+                    } else {
+                        finalColorCss = '#2563eb'; // Remains Blue
+                        finalColorName = 'Biru (Tetap)';
+                        conclusion = 'Negatif Gula Pereduksi';
+                    }
+                }
+            } else if (reagent.id === 'biuret') {
+                if (sample.content === 'protein') {
+                    finalColorCss = '#7e22ce'; // Purple / Violet
+                    finalColorName = 'Ungu';
+                    conclusion = 'Positif Mengandung Protein';
+                } else {
+                    finalColorCss = '#60a5fa'; // Light Blue
+                    finalColorName = 'Biru Muda';
+                    conclusion = 'Negatif Protein';
+                }
+            }
+
+            liquid.style.backgroundColor = finalColorCss;
+            document.getElementById('info-color').innerText = finalColorName;
+
+            // Only push to result table if test completes fully
+            if (reagent.id !== 'benedict' || state.isHeated) {
+                addObservationRecord({
+                    sampleName: sample.name,
+                    reagentName: reagent.name,
+                    heating: state.isHeated ? 'Ya (Dipanaskan)' : 'Tidak',
+                    initialColor: sample.baseColorName,
+                    finalColor: finalColorName,
+                    conclusion: conclusion
+                });
+            }
+        }
+
+        function updateStatusUI() {
+            document.getElementById('info-sample').innerText = state.selectedSample ? state.selectedSample.name : '-';
+            document.getElementById('info-reagent').innerText = state.selectedReagent ? state.selectedReagent.name : '-';
+            document.getElementById('info-heat').innerText = state.isHeated ? 'Dipanaskan' : 'Dingin';
+            document.getElementById('info-color').innerText = state.selectedSample ? state.selectedSample.baseColorName : 'Bening';
+        }
+
+        function updateInstruction(text) {
+            document.getElementById('instruction-text').innerText = text;
+        }
+
+        function addObservationRecord(record) {
+            // Prevent duplicate adjacent entries
+            const isDuplicate = state.observationHistory.some(r => 
+                r.sampleName === record.sampleName && 
+                r.reagentName === record.reagentName && 
+                r.heating === record.heating
+            );
+
+            if (isDuplicate) return;
+
+            state.observationHistory.push(record);
+            renderTable();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('observation-table-body');
+            if (state.observationHistory.length === 0) {
+                tbody.innerHTML = `
+                    <tr id="empty-table-row">
+                        <td colspan="7" class="p-4 text-center text-slate-500 italic">Belum ada data pengamatan. Selesaikan pengujian sampel di atas.</td>
+                    </tr>`;
+                return;
+            }
+
+            tbody.innerHTML = state.observationHistory.map((item, idx) => `
+                <tr class="hover:bg-slate-800/40 transition-colors">
+                    <td class="p-3 border-b border-slate-800 font-mono text-slate-400">${idx + 1}</td>
+                    <td class="p-3 border-b border-slate-800 font-semibold text-slate-200">${item.sampleName}</td>
+                    <td class="p-3 border-b border-slate-800 text-amber-300">${item.reagentName}</td>
+                    <td class="p-3 border-b border-slate-800">${item.heating}</td>
+                    <td class="p-3 border-b border-slate-800 text-slate-400">${item.initialColor}</td>
+                    <td class="p-3 border-b border-slate-800 font-medium text-cyan-300">${item.finalColor}</td>
+                    <td class="p-3 border-b border-slate-800">
+                        <span class="px-2.5 py-1 rounded-full text-[11px] font-semibold ${item.conclusion.includes('Positif') ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-700/50 text-slate-400'}">
+                            ${item.conclusion}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function clearTable() {
+            state.observationHistory = [];
+            renderTable();
+        }
+
+        function resetLab() {
+            state.selectedSample = null;
+            state.selectedReagent = null;
+            state.isReagentAdded = false;
+            state.isHeated = false;
+
+            // Reset UI Selection
+            document.querySelectorAll('#sample-buttons button, #reagent-buttons button').forEach(btn => {
+                btn.classList.remove('border-cyan-500', 'border-amber-500', 'bg-cyan-950/40', 'bg-amber-950/40', 'ring-1', 'ring-cyan-500', 'ring-amber-500');
+            });
+
+            // Reset Buttons
+            const addBtn = document.getElementById('btn-add-reagent');
+            addBtn.disabled = true;
+            addBtn.className = "w-full py-3 px-4 bg-slate-800 text-slate-500 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all cursor-not-allowed border border-slate-700";
+
+            const heatBtn = document.getElementById('btn-heat');
+            heatBtn.disabled = true;
+            heatBtn.className = "w-full py-3 px-4 bg-slate-800 text-slate-500 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all cursor-not-allowed border border-slate-700";
+
+            // Reset Liquid
+            const liquid = document.getElementById('tube-liquid');
+            liquid.style.height = '0%';
+            liquid.style.backgroundColor = 'transparent';
+
+            turnOffHeat();
+            updateStatusUI();
+            updateInstruction('Pilihlah salah satu sampel makanan di panel kiri untuk memulai pengujian.');
+        }
+
+        /* --- NAVIGATION TABS --- */
+        function switchTab(tab) {
+            const labSection = document.getElementById('section-lab');
+            const quizSection = document.getElementById('section-quiz');
+            const labBtn = document.getElementById('tab-btn-lab');
+            const quizBtn = document.getElementById('tab-btn-quiz');
+
+            if(tab === 'lab') {
+                labSection.classList.remove('hidden');
+                quizSection.classList.add('hidden');
+                labBtn.className = "px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-cyan-600 text-white shadow-md shadow-cyan-600/30";
+                quizBtn.className = "px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-slate-800 text-slate-300 hover:bg-slate-700";
+            } else {
+                labSection.classList.add('hidden');
+                quizSection.classList.remove('hidden');
+                quizBtn.className = "px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-cyan-600 text-white shadow-md shadow-cyan-600/30";
+                labBtn.className = "px-4 py-2 rounded-lg text-sm font-semibold transition-all bg-slate-800 text-slate-300 hover:bg-slate-700";
+            }
+        }
+
+        /* --- QUIZ LOGIC --- */
+        function renderQuiz() {
+            const container = document.getElementById('quiz-container');
+            container.innerHTML = QUIZ_QUESTIONS.map((q, idx) => `
+                <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-3">
+                    <p class="font-semibold text-slate-200 text-sm">${idx + 1}. ${q.question}</p>
+                    <div class="space-y-2">
+                        ${q.options.map((opt, optIdx) => `
+                            <label class="flex items-center gap-3 p-2.5 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 cursor-pointer text-xs text-slate-300 transition-colors">
+                                <input type="radio" name="question-${q.id}" value="${optIdx}" class="text-cyan-500 focus:ring-cyan-500 bg-slate-900 border-slate-700">
+                                <span>${opt}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function submitQuiz() {
+            let score = 0;
+            QUIZ_QUESTIONS.forEach(q => {
+                const selected = document.querySelector(`input[name="question-${q.id}"]:checked`);
+                if(selected && parseInt(selected.value) === q.answer) {
+                    score += 1;
+                }
+            });
+
+            const totalScore = (score / QUIZ_QUESTIONS.length) * 100;
+            const scoreDisplay = document.getElementById('quiz-score');
+            scoreDisplay.innerText = `Skor Anda: ${totalScore} / 100`;
+        }
+    </script>
+</body>
+</html>
